@@ -154,28 +154,39 @@ export default {
         this.showForgotPassword = true;
       }
     },
-    login() {
-      this.performingRequest = true;
-
-      fb.auth
-        .signInWithEmailAndPassword(
-          this.loginForm.email,
-          this.loginForm.password
-        )
-        .then(user => {
-          this.$store.commit("setCurrentUser", user.user);
-          this.$store.dispatch("fetchUserProfile");
-          this.performingRequest = false;
-          this.$router.push("/dashboard");
-        })
-        .catch(err => {
-          console.log(err);
-          this.performingRequest = false;
-          this.errorMsg = err.message;
-        });
+    startRequest() {
+      this.performingRequest = true
     },
+    finishRequest() {
+      this.performingRequest = false
+    },
+    handleError(err) {
+      console.log(err);
+      this.errorMsg = err.message;
+    },
+
+    async login() {
+      this.startRequest()
+
+      try {
+        let user = await fb.auth
+          .signInWithEmailAndPassword(
+            this.loginForm.email,
+            this.loginForm.password)
+        this.$store.commit("setCurrentUser", user.user);
+        this.$store.dispatch("fetchUserProfile");
+        this.$router.push("/dashboard");
+      }
+
+      catch(err) {
+        this.handleError(err)
+      }
+
+      this.finishRequest()
+    },
+
     async signup() {
-      this.performingRequest = true;
+      this.startRequest()
 
       try {
         let user = await fb.auth.createUserWithEmailAndPassword(
@@ -186,35 +197,35 @@ export default {
 
         let document = fb.usersCollection.doc(user.user.uid)
         await document.set({
-          name: "Name",
-          msg: "hello"
+          name: this.signupForm.name
         })
 
         this.$store.dispatch('fetchUserProfile');
         this.$router.push('/dashboard');
       }
-      catch (err) {        
-        console.log(err);
-        this.errorMsg = err.message;
+
+      catch(err) {        
+        this.handleError(err)
       }
 
-      this.performingRequest = false;      
+      this.finishRequest()      
     },
-    resetPassword() {
-      this.performingRequest = true;
 
-      fb.auth
-        .sendPasswordResetEmail(this.passwordForm.email)
-        .then(() => {
-          this.performingRequest = false;
-          this.passwordResetSuccess = true;
-          this.passwordForm.email = "";
-        })
-        .catch(err => {
-          console.log(err);
-          this.performingRequest = false;
-          this.errorMsg = err.message;
-        });
+    async resetPassword() {
+      this.startRequest()
+
+      try {
+        await fb.auth
+          .sendPasswordResetEmail(this.passwordForm.email)
+        this.passwordResetSuccess = true;
+        this.passwordForm.email = "";
+      }
+
+      catch(err) {
+        this.handleError(err)
+      }
+
+      this.finishRequest()
     }
   }
 };
