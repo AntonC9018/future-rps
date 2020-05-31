@@ -11,6 +11,7 @@ const config = {
   appId: "1:636007588592:web:36d2a643c76325b45a1835",
   measurementId: "G-BPEW4KYSRX"
 }
+firebase.initializeApp(config)
 
 // firebase utils
 const db = firebase.firestore()
@@ -18,10 +19,7 @@ const auth = firebase.auth()
 const currentUser = auth.currentUser
 
 // date issue fix according to firebase
-const settings = {
-  timestampsInSnapshots: true
-}
-db.settings(settings)
+// db.settings({})
 
 // firebase collections
 const usersCollection = db.collection('users')
