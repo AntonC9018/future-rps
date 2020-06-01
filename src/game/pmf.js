@@ -90,3 +90,14 @@ export function updatePmfsWithPmf(pmfs, result, prevPlayed, predicPmf, actualAct
   updatePmfWithPmfObservation(pmfs[result + prevPlayed + PREDIC.PAPER], actualActionPmf, predicPmf[PAPER])
   updatePmfWithPmfObservation(pmfs[result + prevPlayed + PREDIC.SCISSORS], actualActionPmf, predicPmf[SCISSORS])
 }
+
+function actionsToPmf(actions) {
+  let pmf = [0, 0, 0]
+  for (let action in actions) {
+    pmf[action] += 1
+  }
+  pmf[0] /= actions.length
+  pmf[1] /= actions.length
+  pmf[2] /= actions.length
+  return pmf
+}

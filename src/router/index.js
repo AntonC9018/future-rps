@@ -5,6 +5,7 @@ import firebase from 'firebase'
 import Login from '@/components/Login'
 import Dashboard from '@/components/Dashboard'
 import Settings from '@/components/Settings'
+import Game from '@/components/Game'
 
 Vue.use(VueRouter)
 
@@ -12,6 +13,11 @@ const routes = [
   {
     path: '*',
     redirect: '/dashboard'
+  },
+  {
+    path: '/game',
+    name: 'Game',
+    component: Game
   },
   {
     path: '/login',

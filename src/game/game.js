@@ -2,10 +2,10 @@ import {
   WIN,
   LOSE,
   TIE,
-  HIGH_HEALTH,
-  LOW_HEALTH,
+  // HIGH_HEALTH,
+  // LOW_HEALTH,
   FIRST_TURN,
-  predicOffsetByAction,
+  // predicOffsetByAction,
   playedOffsetByAction,
   resultOffsetByResult,
   healthOffsetByHealth
@@ -16,6 +16,9 @@ import {
   PAPER,
   SCISSORS
 } from './actions'
+
+import { indexOfMax } from './utils'
+
 
 function createPlayerState(action, hp, predicPmf) {
   return {
@@ -40,10 +43,15 @@ export class Player {
   }
 
   clone() {
-    let player = new Player(this.pmfs, this.hp)
-    player.lastState =    cloneState(this.lastState)
+    let player = Player.create()
+    player.pmfs = this.pmfs
+    player.lastState = cloneState(this.lastState)
     player.currentState = cloneState(this.currentState)
     return player
+  }
+
+  static create() {
+    return Object.create(this.prototype)
   }
 }
 
@@ -58,13 +66,29 @@ export class Game {
     this.observations = []
   }
 
+  static create() {
+    return Object.create(this.prototype);
+  }
+
+  clone() {
+    let game = Game.create()
+    game.players = []
+    game.players[0] = this.players[0].clone()
+    game.players[1] = this.players[1].clone()
+    game.turn = this.turn
+    game.deadEnd = this.deadEnd
+    game.lastResult = this.lastResult
+    game.observations = [[], []]
+    return game
+  }
+
   makeObservation() {
     this.observations[0].push(
       {
-        hp: this.players[0].currentState.hp,
+        hp: this.players[0].lastState.hp,
         result: this.lastResult,
         predicPmf: this.players[0].lastState.predicPmf,
-        enemyAction: this.players[1].lastState.action,
+        // enemyAction: this.players[1].lastState.action,
         actualAction: this.players[0].lastState.action
       }
     )
@@ -85,14 +109,12 @@ export class Game {
         this.players[1].pmfs[FIRST_TURN]
       this.players[1].currentState.predicPmf =
         this.players[0].pmfs[FIRST_TURN]
-    } else {
-
     }
   }
 
   addPlayer(pmfs, hp) {
     let index = this.players.length
-    this.addPlayer(index, new Player(pmfs, hp))
+    this.players[index] = new Player(pmfs, hp)
     return index
   }
 
@@ -103,11 +125,11 @@ export class Game {
     }
   }
 
-  forceEndRound() {
-    if (!players[0].currentAction) {
+  // forceEndRound() {
+  //   if (!this.players[0].currentAction) {
 
-    }
-  }
+  //   }
+  // }
 
   // play out the rock paper scissors logic
   // decrease the hp of the player that lost
@@ -115,6 +137,7 @@ export class Game {
   // this function relies on the assumption that player actions
   // have been set beforehand 
   endRound() {
+    this.turn++
     let player = this.players[0]
     let opponent = this.players[1]
     let a0 = player.currentState.action
@@ -144,6 +167,12 @@ export class Game {
     player.currentState = { hp: player.currentState.hp }
     opponent.currentState = { hp: opponent.currentState.hp }
 
+    this.lastResult = result
+
+    if (player.hp == 0 || opponent.hp == 0) {
+      return
+    }
+
     /* 
     So, there are four variables we need to calculate.
     Actually, there are 8: 4 from the perspective of the player
@@ -172,10 +201,69 @@ export class Game {
     
     I think this second method makes most sense.
     */
-    // let r = player.pmfs[
-    //   playedOffsetByAction(player.lastState.action) +
-    //   resultOffsetByResult(result) +
-    //   healthOffsetByHealth(player.currentState)
-    // ]
+
+    let offset =
+      healthOffsetByHealth(player.currentState.hp) +
+      playedOffsetByAction(player.lastState.action) +
+      resultOffsetByResult(result)
+    let possibleOpponentPmfs = opponent.pmfs.slice(offset, offset + 3)
+    let possiblePlayerPmfs   = player.pmfs.slice(offset, offset + 3)
+
+    // now, try all possible actions for the opponent
+    function getProbabilityOfAction(opponentAction) {
+      let playerPredicPmf = possiblePlayerPmfs[opponentAction]
+      // now, the player has the probability of taking action i
+      // of whatever the value of this pmf at index i is
+      // calculate the total probability of the given opponent action
+      let prob = 
+        possibleOpponentPmfs[ROCK][opponentAction]     * playerPredicPmf[ROCK] +
+        possibleOpponentPmfs[PAPER][opponentAction]    * playerPredicPmf[PAPER] +
+        possibleOpponentPmfs[SCISSORS][opponentAction] * playerPredicPmf[SCISSORS]
+
+      return prob
+    }
+
+    let probs = [] 
+    probs[ROCK]     = getProbabilityOfAction(ROCK)
+    probs[PAPER]    = getProbabilityOfAction(PAPER)
+    probs[SCISSORS] = getProbabilityOfAction(SCISSORS)
+
+    let mostLikelyOpponentAction = indexOfMax(probs)
+    opponent.currentState.predicPmf = possiblePlayerPmfs[mostLikelyOpponentAction]
+    let mostLikelyPlayerAction = indexOfMax(opponent.currentState.predicPmf)
+    player.currentState.predicPmf = possibleOpponentPmfs[mostLikelyPlayerAction]
   }
+}
+
+const MAX_ITER = 10
+
+export function getPredictionsBySimulation(currentGame) {
+  let gameClone = currentGame.clone()
+  let player = gameClone.players[0]
+  let opponent = gameClone.players[1]
+  let predictions = []
+  let i = 0
+
+  while(!gameClone.deadEnd && i < MAX_ITER) {
+    // set action of player and the opponent
+    let playerAction = indexOfMax(opponent.currentState.predicPmf)
+    let opponentAction = indexOfMax(player.currentState.predicPmf)
+    gameClone.setPlayerAction(0, playerAction)
+    gameClone.setPlayerAction(1, opponentAction)
+    gameClone.endRound()
+
+    predictions[i] = {
+      opponentActionsPmf: player.lastState.predicPmf,
+      opponentAction,
+      playerAction,
+      playerHp: player.currentState.hp,
+      opponentHp: opponent.currentState.hp,
+      result: gameClone.lastResult,
+      deadEnd: gameClone.deadEnd
+    }
+
+    i++
+  }
+
+  return predictions
 }

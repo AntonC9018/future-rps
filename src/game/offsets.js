@@ -8,9 +8,9 @@ export const LOW_HEALTH = 1
 export const FIRST_TURN = 0
 
 export const PREDIC = {
-  ROCK = 0,
-  PAPER = 1,
-  SCISSORS = 2
+  ROCK: 0,
+  PAPER: 1,
+  SCISSORS: 2
 }
 
 export function predicOffsetByAction(action) {
@@ -18,9 +18,9 @@ export function predicOffsetByAction(action) {
 }
 
 export const PLAYED = {
-  ROCK = 0,
-  PAPER = 3,
-  SCISSORS = 6
+  ROCK: 0,
+  PAPER: 3,
+  SCISSORS: 6
 }
 
 export function playedOffsetByAction(action) {
@@ -28,9 +28,9 @@ export function playedOffsetByAction(action) {
 }
 
 export const RESULT = {
-  WIN = 0,
-  LOSE = 9,
-  TIE = 18
+  WIN: 0,
+  LOSE: 9,
+  TIE: 18
 }
 
 export function resultOffsetByResult(result) {
@@ -38,8 +38,8 @@ export function resultOffsetByResult(result) {
 }
 
 export const HEALTH = {
-  HIGH = 0,
-  LOW = 27
+  HIGH: 0,
+  LOW: 27
 }
 
 export function healthOffsetByHealth(hp) {
