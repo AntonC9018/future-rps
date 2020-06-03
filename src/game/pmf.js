@@ -53,10 +53,27 @@ function uniformPmf() {
   return [1 / 3, 1 / 3, 1 / 3]
 }
 
+function randomPmf() {
+  let rock = Math.random()
+  let paper = Math.random()
+  let scissors = Math.random()
+  let sum = rock + paper + scissors
+  return [rock / sum, paper / sum, scissors / sum]
+}
+
+
 export function createPmfs() {
   let pmfs = []
   for (let i = 0; i < NUM_PMFS; i++) {
     pmfs[i] = uniformPmf()
+  }
+  return pmfs
+}
+
+export function createRandomPmfs() {
+  let pmfs = []
+  for (let i = 0; i < NUM_PMFS; i++) {
+    pmfs[i] = randomPmf()
   }
   return pmfs
 }

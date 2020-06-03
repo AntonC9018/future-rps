@@ -38,13 +38,13 @@ export function resultOffsetByResult(result) {
 }
 
 export const HEALTH = {
-  HIGH: 0,
-  LOW: 27
+  HIGH: 1,
+  LOW: 28
 }
 
 export function healthOffsetByHealth(hp) {
   if (hp < 2)
-    return HEALTH.HIGH
-  else
     return HEALTH.LOW
+  else
+    return HEALTH.HIGH
 }

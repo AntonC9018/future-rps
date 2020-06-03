@@ -78,12 +78,12 @@ export class Game {
     game.turn = this.turn
     game.deadEnd = this.deadEnd
     game.lastResult = this.lastResult
-    game.observations = [[], []]
+    game.observations = []
     return game
   }
 
   makeObservation() {
-    this.observations[0].push(
+    this.observations.push(
       {
         hp: this.players[0].lastState.hp,
         result: this.lastResult,
@@ -153,11 +153,11 @@ export class Game {
       || a0 == SCISSORS && a1 == PAPER)
     {
       result = WIN
-      this.damagePlayer(player)
+      this.damagePlayer(opponent)
     }
     else {
       result = LOSE
-      this.damagePlayer(opponent)
+      this.damagePlayer(player)
     }
 
     this.makeObservation(0)
@@ -237,6 +237,18 @@ export class Game {
 
 const MAX_ITER = 10
 
+export function getGameStateAsPrediction(game) {
+  return {
+    opponentActionsPmf: game.players[0].lastState.predicPmf,
+    opponentAction: game.players[1].lastState.action,
+    playerAction: game.players[0].lastState.action,
+    playerHp: game.players[0].currentState.hp,
+    opponentHp: game.players[1].currentState.hp,
+    result: game.lastResult,
+    deadEnd: game.deadEnd
+  }
+}
+
 export function getPredictionsBySimulation(currentGame) {
   let gameClone = currentGame.clone()
   let player = gameClone.players[0]
@@ -252,15 +264,7 @@ export function getPredictionsBySimulation(currentGame) {
     gameClone.setPlayerAction(1, opponentAction)
     gameClone.endRound()
 
-    predictions[i] = {
-      opponentActionsPmf: player.lastState.predicPmf,
-      opponentAction,
-      playerAction,
-      playerHp: player.currentState.hp,
-      opponentHp: opponent.currentState.hp,
-      result: gameClone.lastResult,
-      deadEnd: gameClone.deadEnd
-    }
+    predictions[i] = getGameStateAsPrediction(gameClone)
 
     i++
   }
