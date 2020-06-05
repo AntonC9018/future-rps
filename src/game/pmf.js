@@ -61,6 +61,13 @@ function randomPmf() {
   return [rock / sum, paper / sum, scissors / sum]
 }
 
+function constantPmf() {
+  let index = Math.round(Math.random() * 3)
+  let arr = [0, 0, 0]
+  arr[index] = 1
+  return arr
+}
+
 
 export function createPmfs() {
   let pmfs = []
@@ -74,6 +81,14 @@ export function createRandomPmfs() {
   let pmfs = []
   for (let i = 0; i < NUM_PMFS; i++) {
     pmfs[i] = randomPmf()
+  }
+  return pmfs
+}
+
+export function createConstantPmfs() {
+  let pmfs = []
+  for (let i = 0; i < NUM_PMFS; i++) {
+    pmfs[i] = constantPmf()
   }
   return pmfs
 }

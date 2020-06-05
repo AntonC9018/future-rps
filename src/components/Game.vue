@@ -3,11 +3,11 @@
 
     <div class="stats">
       <div>Your hp: 
-        <div class="heart-text">{{ game.players[0].currentState.hp }}</div>
+        <div class="heart-text">{{ gm.player.currentState.hp }}</div>
         <div class="heart"></div>
       </div>
       <div>Enemy hp:
-        <div class="heart-text">{{ game.players[1].currentState.hp }}</div>
+        <div class="heart-text">{{ gm.opponent.currentState.hp }}</div>
         <div class="heart"></div>
       </div>
 
@@ -15,19 +15,19 @@
 
     <button 
       @click="selectAction(ACTIONS.ROCK)" 
-      :class="{ selected: selectAction == ACTIONS.ROCK }"
+      :class="{ selected: selectedAction == ACTIONS.ROCK }"
     >
       Rock
     </button>
     <button 
       @click="selectAction(ACTIONS.PAPER)" 
-      :class="{ selected: selectAction == ACTIONS.PAPER }"
+      :class="{ selected: selectedAction == ACTIONS.PAPER }"
     >
       Paper
     </button>
     <button 
       @click="selectAction(ACTIONS.SCISSORS)" 
-      :class="{ selected: selectAction == ACTIONS.SCISSORS }"
+      :class="{ selected: selectedAction == ACTIONS.SCISSORS }"
     >
       Scissors
     </button>
@@ -46,46 +46,46 @@
 
     <div class="predictions">
       <div class="predictions-title">
-        Predictions
+        Future log
       </div>
       <div 
-        v-for="(prediction, index) in predictions" 
+        v-for="(entry, index) in entries" 
         :key="'pred-' + index"
         :class="{ 
           'prediction': true,
-          'past-prediction': index < game.turn, 
-          'next-prediction': index == game.turn 
+          'past-prediction': index < turn, 
+          'next-prediction': index == turn 
         }"
       >
 
         <h5>Entry #{{ index + 1 }}</h5>
 
-        You play <span class="play">{{ actions[prediction.playerAction] }}</span> 
-        against your opponent's <span class="play">{{ actions[prediction.opponentAction] }}.</span>
-        ({{ (prediction.opponentActionsPmf[prediction.opponentAction] * 100).toFixed(2) }}% predicted probability)
+        You play <span class="play">{{ actions[entry.playerAction] }}</span> 
+        against your opponent's <span class="play">{{ actions[entry.opponentAction] }}.</span>
+        ({{ (entry.opponentActionsPmf[entry.opponentAction] * 100).toFixed(2) }}% predicted probability)
 
         <br>As a result, you 
           <span 
             :class="{
-              'positive-result': prediction.result == RESULTS.WIN,
-              'negative-result': prediction.result == RESULTS.LOSE
+              'positive-result': entry.result == RESULTS.WIN,
+              'negative-result': entry.result == RESULTS.LOSE
             }">
-            {{ results[prediction.result] }}.
+            {{ results[entry.result] }}.
           </span>
 
-        <div v-if="prediction.result == RESULTS.WIN">
-          The hp of your opponent drops down to {{ prediction.opponentHp }}.
+        <div v-if="entry.result == RESULTS.WIN">
+          The hp of your opponent drops down to {{ entry.opponentHp }}.
 
           
         </div>
-        <div v-else-if="prediction.result == RESULTS.LOSE">
-          Your hp drops down to {{ prediction.playerHp }}.
+        <div v-else-if="entry.result == RESULTS.LOSE">
+          Your hp drops down to {{ entry.playerHp }}.
         </div>
         
       </div>
 
       <div 
-        v-if="lastPrediction.deadEnd"
+        v-if="lastPrediction && lastPrediction.deadEnd"
         class="dead-end"  
       >
 
@@ -111,45 +111,20 @@
 
 <script>
 
-import { 
-  Player,
-  Game,
-  getPredictionsBySimulation,
-  getGameStateAsPrediction
-} from '../game/game'
+import GameManager from '../game/manager'
 
-import { createPmfs, createRandomPmfs } from '../game/pmf'
 import * as ACTIONS from '../game/actions' 
 import { WIN, LOSE, TIE } from '../game/offsets'
-// import { indexOfMax } from '../game/utils'
 
-const START_HP = 3
 
 export default {
   data() {
-    let game = new Game()
-    let opponentGame = new Game()
-
-    let playerPmfs = createRandomPmfs()
-    let opponentPmfs = createRandomPmfs()
-    
-    game.addPlayer(playerPmfs, START_HP)
-    game.addPlayer(opponentPmfs, START_HP)
-
-    opponentGame.addPlayer(opponentPmfs, START_HP)
-    opponentGame.addPlayer(playerPmfs, START_HP)
-
-    game.setupPredicPmf()
-    opponentGame.setupPredicPmf()
-
     return {
-      game, 
-      opponentGame,
+      gm: new GameManager(),
       ACTIONS,
       actions: [ 'rock', 'paper', 'scissors' ],
       RESULTS: { WIN, LOSE, TIE },
       results: [ 'win the round', 'lose the round', 'tie' ],
-      predictions: getPredictionsBySimulation(game),
       selectedAction: null
     }
   },
@@ -158,63 +133,41 @@ export default {
 
     selectAction(action) {
       this.selectedAction = action
-      console.log(this.game)
-    },
-
-    setAction() {
-      let opponentAction = this.predictions[this.game.turn].opponentAction
-      this.game.setPlayerAction(0, this.selectedAction)
-      this.game.setPlayerAction(1, opponentAction)
-      this.opponentGame.setPlayerAction(0, opponentAction)
-      this.opponentGame.setPlayerAction(1, this.selectedAction)
+      this.gm.setPlayerAction(this.selectedAction)
     },
 
     reset() {
-      this.game = new Game()
-      this.opponentGame = new Game()
-
-      let playerPmfs = createRandomPmfs()
-      let opponentPmfs = createRandomPmfs()
-      
-      this.game.addPlayer(playerPmfs, START_HP)
-      this.game.addPlayer(opponentPmfs, START_HP)
-
-      this.opponentGame.addPlayer(opponentPmfs, START_HP)
-      this.opponentGame.addPlayer(playerPmfs, START_HP)
-
-      this.game.setupPredicPmf()
-      this.opponentGame.setupPredicPmf()
-
-      this.predictions = getPredictionsBySimulation(this.game)
+      this.gm.reset()
     },
 
-    updatePredictions() {
-      let roundResult = getGameStateAsPrediction(this.game)
-      let newPredictions = getPredictionsBySimulation(this.game)
-      this.predictions = 
-        [...this.predictions.slice(0, this.game.turn), ...newPredictions]
-      this.predictions[this.game.turn - 1] = roundResult
-    },
-
-    endRound() {
-      this.setAction()
-      this.game.endRound()
-      this.opponentGame.endRound()
-      this.updatePredictions()
+    async endRound() {
+      await this.gm.ready()
+      this.gm.endRound()
       this.selectedAction = null
     }
   },
+
   computed: {
+
+    turn: function() {
+      return this.gm.game.turn
+    },
+
+    entries: function() {
+      return [...this.gm.history, ...this.gm.predictions]
+    },
+
     lastPrediction: function() {
-      return this.predictions[this.predictions.length - 1]
+      return this.entries[this.entries.length - 1]
     }
   }
 }
 </script>
 
-<style>
+<style scoped>
 .selected {
-  background-color: blueviolet;
+  background-color: rgb(100%, 99.2%, 60.1%);
+  border-color:rgb(100%, 99.2%, 60.1%);
 }
 .past-prediction {
   background-color: grey;
@@ -267,7 +220,7 @@ export default {
   font-weight: bold;
 }
 
-/* Heart stolen from https://stackoverflow.com/questions/17386168/how-to-create-a-heart-shape-using-css */
+/* Heart shamelessly stolen from https://stackoverflow.com/questions/17386168/how-to-create-a-heart-shape-using-css */
 .heart-text{
   position:absolute;
   z-index:3;

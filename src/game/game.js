@@ -19,6 +19,7 @@ import {
 
 import { indexOfMax } from './utils'
 
+const MAX_ITER = 10
 
 function createPlayerState(action, hp, predicPmf) {
   return {
@@ -34,7 +35,7 @@ function cloneState(state) {
   }
 }
 
-export class Player {
+class Player {
 
   constructor(pmfs, hp) {
     this.pmfs = pmfs
@@ -56,7 +57,7 @@ export class Player {
 }
 
 
-export class Game {
+export default class Game {
   
   constructor() {
     this.players = []
@@ -232,42 +233,45 @@ export class Game {
     opponent.currentState.predicPmf = possiblePlayerPmfs[mostLikelyOpponentAction]
     let mostLikelyPlayerAction = indexOfMax(opponent.currentState.predicPmf)
     player.currentState.predicPmf = possibleOpponentPmfs[mostLikelyPlayerAction]
-  }
-}
 
-const MAX_ITER = 10
-
-export function getGameStateAsPrediction(game) {
-  return {
-    opponentActionsPmf: game.players[0].lastState.predicPmf,
-    opponentAction: game.players[1].lastState.action,
-    playerAction: game.players[0].lastState.action,
-    playerHp: game.players[0].currentState.hp,
-    opponentHp: game.players[1].currentState.hp,
-    result: game.lastResult,
-    deadEnd: game.deadEnd
-  }
-}
-
-export function getPredictionsBySimulation(currentGame) {
-  let gameClone = currentGame.clone()
-  let player = gameClone.players[0]
-  let opponent = gameClone.players[1]
-  let predictions = []
-  let i = 0
-
-  while(!gameClone.deadEnd && i < MAX_ITER) {
-    // set action of player and the opponent
-    let playerAction = indexOfMax(opponent.currentState.predicPmf)
-    let opponentAction = indexOfMax(player.currentState.predicPmf)
-    gameClone.setPlayerAction(0, playerAction)
-    gameClone.setPlayerAction(1, opponentAction)
-    gameClone.endRound()
-
-    predictions[i] = getGameStateAsPrediction(gameClone)
-
-    i++
+    this.mostLikelyOpponentAction = mostLikelyOpponentAction
+    this.mostLikelyPlayerAction = mostLikelyPlayerAction
   }
 
-  return predictions
+  getGameStateAsPrediction() {
+    return {
+      opponentActionsPmf: this.players[0].lastState.predicPmf,
+      opponentAction: this.players[1].lastState.action,
+      playerAction: this.players[0].lastState.action,
+      playerHp: this.players[0].currentState.hp,
+      opponentHp: this.players[1].currentState.hp,
+      result: this.lastResult,
+      deadEnd: this.deadEnd
+    }
+  }
+
+  getPredictionsBySimulation(max_iter) {
+    max_iter = max_iter || MAX_ITER
+
+    let gameClone = this.clone()
+    let player = gameClone.players[0]
+    let opponent = gameClone.players[1]
+    let predictions = []
+    let i = 0
+
+    while (!gameClone.deadEnd && i < max_iter) {
+      // set action of player and the opponent
+      let playerAction = indexOfMax(opponent.currentState.predicPmf)
+      let opponentAction = indexOfMax(player.currentState.predicPmf)
+      gameClone.setPlayerAction(0, playerAction)
+      gameClone.setPlayerAction(1, opponentAction)
+      gameClone.endRound()
+
+      predictions[i] = gameClone.getGameStateAsPrediction()
+
+      i++
+    }
+
+    return predictions
+  }
 }
